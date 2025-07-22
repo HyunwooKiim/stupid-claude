@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 
 interface Message {
@@ -22,6 +24,10 @@ function App() {
   const [isComposing, setIsComposing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Gemini AI 설정
+  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '')
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -31,38 +37,37 @@ function App() {
     scrollToBottom()
   }, [messages])
 
-  const generateClaudeResponse = (userMessage: string): string => {
-    const responses = [
-      "잘 알아듣지 못하였어요 😵‍💫",
-      "아이고... 이해를 못했네요 😵",
-      "흠... 뭔 말인지 모르겠어요 😅",
-      "당황스럽네요! 다시 한번 설명해주실까요? 😰",
-      "어라? 무슨 뜻인지... 😳",
-      "이해력이 부족한 것 같아요 😓",
-      "아직 배우는 중이라... 😔",
-      "??? 뭔소리여 😶",
-      "헉... 어렵네요 😖",
-      "이거... 뭐라고 해야할지 😐",
-      "앗... 죄송해요 이해를 못했어요 😬",
-      "으음... 복잡하네요 🤯",
-      "저... 멍청해서 모르겠어요 🤤",
-      "뇌정지 왔어요... 💀",
-      "아직 공부가 부족한가봐요 📚😭",
-      "음... 영어로 말해주시면... 아니 그래도 모를듯 🤡",
-      "제가 AI가 맞나 싶어요... 🤖❓",
-      "ChatGPT한테 물어보세요 😂",
-      "구글 번역기보다 못한 것 같아요 🥲",
-      "저 퇴사할게요... 👋😢",
-      "뭔가... 알 것 같긴 한데... 모르겠어요 🫠",
-      "한국어가 어려워요 ㅠㅠ 🇰🇷❓",
-      "아... 네... 그렇군요... (못 알아들음) 😅",
-      "천천히 말해주세요... 여전히 모를 것 같지만요 🐌",
-      "이해했다고 거짓말하고 싶지만... 못했어요 😇",
-      "뭔가 심오한 말씀이신 것 같은데... 🤔❓",
-      "저희 회사에서 환불 가능한가요? 💸",
-      "다른 AI 추천해드릴까요? 😂"
-    ]
-    return responses[Math.floor(Math.random() * responses.length)]
+  const generateGeminiResponse = async (userMessage: string): Promise<string> => {
+    try {
+      // 대화 히스토리를 컨텍스트에 포함
+      let conversationContext = "너는 Claude ai야 마크다운을 많이 활용해서 대화를 해줘!\n\n"
+
+      // 최근 10개 메시지만 컨텍스트에 포함 (메모리 절약)
+      const recentMessages = messages.slice(-10)
+      recentMessages.forEach(msg => {
+        if (msg.sender === 'user') {
+          conversationContext += `사용자: ${msg.text}\n`
+        } else {
+          conversationContext += `Claude: ${msg.text}\n`
+        }
+      })
+      
+      conversationContext += `\n사용자: ${userMessage}\nClaude:`
+      
+      const result = await model.generateContent(conversationContext)
+      const response = await result.response
+      return response.text()
+    } catch (error) {
+      console.error('Gemini API Error:', error)
+      // API 실패시 백업 응답
+      const backupResponses = [
+        "죄송해요, 지금 생각이 잘 안나네요... 🤔",
+        "음... 잠시 머리가 멈췄어요 😅",
+        "아직 준비중이에요! 🚧",
+        "서버가 좀 느려서... 🐌"
+      ]
+      return backupResponses[Math.floor(Math.random() * backupResponses.length)]
+    }
   }
 
 
@@ -81,16 +86,27 @@ function App() {
     setInputText('')
     setIsTyping(true)
 
-    setTimeout(() => {
+    try {
+      const geminiResponse = await generateGeminiResponse(currentInput)
       const claudeMessage: Message = {
         id: Date.now() + Math.random(),
-        text: generateClaudeResponse(currentInput),
+        text: geminiResponse,
         sender: 'claude',
         timestamp: new Date()
       }
       setMessages(prev => [...prev, claudeMessage])
+    } catch (error) {
+      console.error('Error generating response:', error)
+      const errorMessage: Message = {
+        id: Date.now() + Math.random(),
+        text: "죄송해요, 뭔가 문제가 생겼어요... 😅",
+        sender: 'claude',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsTyping(false)
-    }, 1500 + Math.random() * 1000)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -131,19 +147,19 @@ function App() {
         <div style={{
           width: '40px',
           height: '40px',
-          background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
+          background: 'linear-gradient(45deg, #4285f4, #34a853)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '1.5rem'
         }}>
-          😵‍💫
+          🤖
         </div>
         <div>
-          <h1 style={{ margin: 0, color: 'white', fontSize: '1.5rem' }}>멍청한 Claude</h1>
+          <h1 style={{ margin: 0, color: 'white', fontSize: '1.5rem' }}>Claude AI</h1>
           <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>
-            이해력 부족한 AI
+            Anthropic의 AI 어시스턴트
           </p>
         </div>
       </div>
@@ -171,7 +187,7 @@ function App() {
               <div style={{
                 width: '30px',
                 height: '30px',
-                background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
+                background: 'linear-gradient(45deg, #4285f4, #34a853)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -179,7 +195,7 @@ function App() {
                 fontSize: '1rem',
                 flexShrink: 0
               }}>
-                😵‍💫
+                🤖
               </div>
             )}
             
@@ -194,7 +210,9 @@ function App() {
               boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
               animation: 'slideIn 0.3s ease-out'
             }}>
-              {message.text}
+              <div className="markdown-content">
+                <ReactMarkdown>{message.text}</ReactMarkdown>
+              </div>
               <div style={{
                 fontSize: '0.7rem',
                 opacity: 0.6,
@@ -231,14 +249,14 @@ function App() {
             <div style={{
               width: '30px',
               height: '30px',
-              background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
+              background: 'linear-gradient(45deg, #4285f4, #34a853)',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '1rem'
             }}>
-              😵‍💫
+              🤖
             </div>
             <div style={{
               background: 'rgba(255, 255, 255, 0.9)',
@@ -293,7 +311,7 @@ function App() {
           onKeyDown={handleKeyDown}
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
-          placeholder="뭔 말인지 모르겠지만 입력해보세요..."
+          placeholder="Claude에게 무엇이든 물어보세요!"
           style={{
             flex: 1,
             background: 'white',

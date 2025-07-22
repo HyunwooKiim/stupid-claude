@@ -13,3 +13,73 @@ html, body {
   height: 100vh;
   width: 100vw;
 }
+
+/* Markdown styles */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin: 0.5rem 0;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.markdown-content h1 { font-size: 1.5rem; }
+.markdown-content h2 { font-size: 1.3rem; }
+.markdown-content h3 { font-size: 1.1rem; }
+.markdown-content h4 { font-size: 1rem; }
+.markdown-content h5 { font-size: 0.9rem; }
+.markdown-content h6 { font-size: 0.8rem; }
+
+.markdown-content code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.markdown-content pre {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+.markdown-content p {
+  margin: 0.25rem 0;
+  line-height: 1.4;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+}
+
+.markdown-content li {
+  margin: 0.2rem 0;
+}
+
+.markdown-content strong {
+  font-weight: bold;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+  padding-left: 0.8rem;
+  margin: 0.5rem 0;
+  font-style: italic;
+}
